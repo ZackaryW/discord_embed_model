@@ -41,6 +41,7 @@ class T_Format(TestCase):
         self.assertEqual(res.fields[0].name, "field_name 1")
         self.assertEqual(res.fields[0].value, "field_value 2")
 
+        
 
     def test_2(self):
         template = Formatter(
@@ -90,3 +91,36 @@ class T_Format(TestCase):
         res: DiscordEmbed = template.format(other_var="2")
 
         assert res.title == "2 word"
+
+class T_parse(TestCase):
+    def test_1(self):
+        x = Formatter(
+            title="title {this}",
+            description="description {this}",
+            url="url {that}",
+            color=0x123456,
+            thumbnail={
+                "url": "thumbnail_url {this}"
+            },
+            footer={
+                "text": "footer_text {this}",
+                "icon_url": "footer_icon_url {that}"
+            },
+            fields=[
+                {
+                    "name": "field_name {this}",
+                    "value": "field_value {that}",
+                    "inline": False
+                }
+            ]
+        )
+
+        res: DiscordEmbed =x.format(this="1", that="2")
+
+        extracted, _ = x.parseEmbed(res)
+
+        self.assertTrue("this" in extracted)
+        self.assertTrue("that" in extracted)
+
+        self.assertEqual(extracted["this"], '1')
+        self.assertEqual(extracted["that"], '2')

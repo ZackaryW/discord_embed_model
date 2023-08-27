@@ -2,8 +2,11 @@
 from functools import cached_property
 import typing
 from pydantic import BaseModel, ConfigDict, model_validator
-from discord_embed_model.model import Embed, DiscordEmbed
+from discord_embed_model.model import Embed, DiscordEmbed, to_pydantic_embed
 import inspect
+import parse
+
+from discord_embed_model.utils import traverse_value
 
 class Formatter(Embed):
     """
@@ -223,4 +226,25 @@ class Formatter(Embed):
         return new_kwargs
                 
 
-    
+    # ANCHOR parser
+    def parseEmbed(self, embed : typing.Union[DiscordEmbed, Embed]):
+        """
+        parse a discord embed and extract the values
+        """
+
+        if isinstance(embed, DiscordEmbed):
+            embed = to_pydantic_embed(embed)
+
+        unconsumed_keys = set(self._format_fields[0])
+        result_dict = {}
+
+        for raw_str, addr in self._iter_fstring_fields():
+            raw_field = traverse_value(embed, addr)
+            parsed = parse.parse(raw_str, raw_field)
+            if parsed is None:
+                continue
+                
+            result_dict.update(parsed.named)
+            unconsumed_keys.difference_update(parsed.named.keys())
+            
+        return result_dict, unconsumed_keys

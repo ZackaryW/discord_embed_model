@@ -5,7 +5,7 @@ import typing
 from pydantic import BaseModel, ConfigDict, Field as _Field, field_validator
 from discord import Embed as DiscordEmbed
 
-from discord_embed_model.utils import extract_fstring_keys, hex_to_rgb
+from discord_embed_model.utils import extract_fstring_keys, hex_to_rgb, traverse_value
 
 class _Base(BaseModel):
     model_config = ConfigDict(
@@ -14,6 +14,9 @@ class _Base(BaseModel):
 
     @cached_property
     def _format_fields(self):
+        return self._real_format_fields()
+
+    def _real_format_fields(self, base=[]):
         fkeys_all = set()
         contain_fstring = {}
 
@@ -24,14 +27,14 @@ class _Base(BaseModel):
                 contain_fstring[name] = []
                 for x in var:
                     x : _Base
-                    fkeys, cmap = x._format_fields
+                    fkeys, cmap = x._real_format_fields(base=base+[name])
                     fkeys_all.update(fkeys)
                     contain_fstring[name].append(cmap)
 
                 continue
 
             if isinstance(var, _Base):
-                fkeys, cmap = var._format_fields
+                fkeys, cmap = var._real_format_fields(base=base+[name])
                 fkeys_all.update(fkeys)
                 contain_fstring[name] = cmap
 
@@ -40,13 +43,48 @@ class _Base(BaseModel):
             if not isinstance(var, str):
                 continue
 
-            if len((fkeys:=extract_fstring_keys(var))) ==0:
+            if len((fkeys:=self._get_fstring_field(keys=tuple(base+[name]),val=var))) ==0:
                 continue
 
             fkeys_all.update(fkeys)
             contain_fstring[name] = len(fkeys) > 0
 
         return fkeys_all, contain_fstring
+    
+    def _iter_fstring_fields(self, base=[]):
+        _, contain_fstring = self._format_fields
+        for name, cmap in contain_fstring.items():
+            var = getattr(self, name)
+            if isinstance(var, list) and all(isinstance(x, _Base) for x in var):
+                for i, x in enumerate(var):
+                    x : _Base
+                    yield from x._iter_fstring_fields(base=base+[name, i])
+                continue
+            elif isinstance(var, _Base):
+                yield from var._iter_fstring_fields(base=base+[name])
+                continue
+            
+            yield var, base + [name]
+
+    def _get_fstring_field(self, keys: tuple, val=None):
+        if len(keys) == 0:
+            raise ValueError("keys must not be empty")
+
+        if not hasattr(self, "_traversed_fstring_fields"):
+            object.__setattr__(self, "_traversed_fstring_fields", {})
+        
+        if keys in self._traversed_fstring_fields:
+            return self._traversed_fstring_fields[keys]
+        
+        if val is None:
+            val = traverse_value(self, keys)
+
+        extracted = extract_fstring_keys(val)
+
+        self._traversed_fstring_fields[keys] = extracted
+
+        return extracted
+    
 
 class Author(_Base):
     name: str

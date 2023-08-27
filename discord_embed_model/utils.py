@@ -20,3 +20,14 @@ def extract_fstring_keys(string : str):
 
 def hex_to_rgb(hex : int):
     return (hex >> 16) & 0xFF, (hex >> 8) & 0xFF, hex & 0xFF
+
+def traverse_value(base, keys : list):
+    for key in keys:
+        if isinstance(base, list):
+            base = base[int(key)]
+        elif isinstance(base, dict):
+            base = base[key]
+        else:
+            base = getattr(base, key)
+    return base
+
