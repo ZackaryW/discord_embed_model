@@ -82,4 +82,11 @@ class T_Format(TestCase):
         res: DiscordEmbed = template.format(user=User("1"))
         assert res.title == "1 has joined the server!"
         assert res.description == "Welcome to the server, <@1>!"
-        
+    
+    def test_4(self):
+        template = Formatter(title="{template} word")
+        template.advance_prep_lambda("template", func=lambda _, x : x["other_var"])
+
+        res: DiscordEmbed = template.format(other_var="2")
+
+        assert res.title == "2 word"

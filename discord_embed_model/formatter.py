@@ -6,6 +6,10 @@ from discord_embed_model.model import Embed, DiscordEmbed
 import inspect
 
 class Formatter(Embed):
+    """
+    template embed class
+    """
+
     model_config = ConfigDict(
         ignored_types=(cached_property,),
         frozen=True,
@@ -36,8 +40,45 @@ class Formatter(Embed):
 
     def format(self, **kwargs)-> DiscordEmbed:
         """
-        Format the embed with the given kwargs.
+        Format the embed with the given kwargs, supports various types of formatting.
+
+        method 1: using 'advance_prep' to format and validate input
+        ```python
+        template = Formatter(title="{template}")
+        template.advance_prep("template", func=lambda x : x.upper())
+
+        res: DiscordEmbed = template.format(template="word")
+        ```
+
+        this example makes sure the input is a str and uppercases it.
+
+        |-----------------------------------------------------------------------|
+
+        method 2: using `advance_prep` to pre process
+        ```py
+        template = Formatter(title="{template} {template_repeat}")
+        template.advance_prep_lambda("template_repeat", func=lambda _, x : x["template"])
+
+        res: DiscordEmbed = template.format(other_var="word")
+
+        assert res.title == "word word"
+        ```
+        this example shows how to use `advance_prep` to repeat a variable.
+
+        |-----------------------------------------------------------------------|
+
+        method 3: using variable path
+        ```py
+        template = Formatter(title="{input.count} word")
+        class Input:
+            count : int
+
+        res: DiscordEmbed = template.format(input=Input(count=2))
+
+        assert res.title == "2 word"
+
         """
+
         kwargs = self._advance_prep(**kwargs)
 
         fmap_keys_ni_base = [
@@ -100,6 +141,10 @@ class Formatter(Embed):
         self._advance_preps : typing.Dict[str, typing.List[typing.Callable]] = {}
 
     def advance_prep(self, *args):
+        """
+        decorator version to register a function to be called before formatting.
+        """
+
         def decorator(func):
             for arg in args:
                 if arg not in self._advance_preps:
@@ -111,6 +156,10 @@ class Formatter(Embed):
         return decorator
     
     def advance_prep_lambda(self, *args, func):
+        """
+        non decorator version to register a function to be called before formatting.
+        """
+
         for arg in args:
             if arg not in self._advance_preps:
                 self._advance_preps[arg] = []
@@ -119,10 +168,15 @@ class Formatter(Embed):
             self._advance_preps[arg].append(func)
 
     def _advance_prep(self, **kwargs):
+        """
+        internal handler to prepare kwargs for formatting, check format() for more info.
+        """
+
         new_kwargs = kwargs.copy()
 
         pending_fields = []
 
+        # getattr recursively
         for key in self._format_fields[0]:
             if "." not in key:
                 pending_fields.append(key)
