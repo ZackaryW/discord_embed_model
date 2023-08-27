@@ -1,0 +1,6 @@
+[tool.ruff]
+line-length = 120 
+
+[tool.ruff.extend-per-file-ignores]
+# init
+"**/__init__.py" = ['F401']
