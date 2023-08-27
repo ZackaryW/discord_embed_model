@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="discord-embed-model",
-    version="0.1.1",
+    version="0.1.2",
     author="Zackary W",
     description="discord.py advanced embeds",
     long_description=open("README.md").read(),
