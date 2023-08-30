@@ -70,6 +70,9 @@ class _Base(BaseModel):
         if len(keys) == 0:
             raise ValueError("keys must not be empty")
 
+        if isinstance(keys, list):
+            keys = tuple(keys)
+
         if not hasattr(self, "_traversed_fstring_fields"):
             object.__setattr__(self, "_traversed_fstring_fields", {})
         

@@ -240,20 +240,26 @@ class Formatter(Embed):
 
         for raw_str, addr in self._iter_fstring_fields():
             raw_field = traverse_value(embed, addr)
-            try:
-                parsed = parse.parse(raw_str, raw_field)
-            except TypeError as e:
-                if (
-                    raw_str.startswith("{") 
-                    and raw_str.endswith("}")
-                    and raw_str.count("{") == raw_str.count("}") == 1
-                ):
-                    result_dict[raw_str[1:-1]] =  None
-                    unconsumed_keys.remove(raw_str[1:-1])
-                    continue
 
-                else:
-                    raise e
+            single_bracketed = raw_str.startswith("{") \
+                and raw_str.endswith("}")\
+                and raw_str.count("{") == raw_str.count("}") == 1
+
+            # check if all fields in this key are consumed
+            field_vars = self._get_fstring_field(addr)
+
+            # if all field vars are consumed
+            if all(x in result_dict for x in field_vars):
+                continue
+
+            if single_bracketed:
+                result_dict[raw_str[1:-1]] =  raw_field
+                unconsumed_keys.remove(raw_str[1:-1])
+                continue
+
+            
+
+            parsed = parse.parse(raw_str, raw_field)
 
             if parsed is None:
                 continue
