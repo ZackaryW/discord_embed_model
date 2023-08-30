@@ -2,6 +2,7 @@
 from unittest import TestCase
 
 from discord import Embed as DiscordEmbed
+import discord
 
 from discord_embed_model.formatter import Formatter
 
@@ -124,3 +125,24 @@ class T_parse(TestCase):
 
         self.assertEqual(extracted["this"], '1')
         self.assertEqual(extracted["that"], '2')
+
+    def test_4(self):
+        """
+        string is single var result in None
+        """
+        x = Formatter(
+            title="{this}",
+            description="{that}",
+        )
+
+        res = discord.Embed(
+            title="1",
+        )
+
+        z, w = x.parseEmbed(res)
+        self.assertEqual(
+            z, {'this': '1', 'that': None}
+        )
+        self.assertEqual(
+            w, set()
+        )
