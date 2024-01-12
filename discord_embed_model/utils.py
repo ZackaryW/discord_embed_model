@@ -1,33 +1,26 @@
+import string
 
-from string import Formatter
-
-def is_fstring(string : str):
-    if not isinstance(string, str):
-        return False
-    try:
-        Formatter().parse(string)
-        return True
-    except ValueError:
-        return False
-
-def extract_fstring_keys(string : str):
-    if not isinstance(string, str):
-        return []
-    try:
-        return [x[1] for x in Formatter().parse(string) if x[1] is not None]
-    except ValueError:
+def extract_vars(fstring:str):
+    if "{" not in fstring:
         return []
 
-def hex_to_rgb(hex : int):
-    return (hex >> 16) & 0xFF, (hex >> 8) & 0xFF, hex & 0xFF
+    # string.formatter
+    f= string.Formatter().parse(fstring)
+    return [x[1] for x in f if x[1] is not None]
 
-def traverse_value(base, keys : list):
-    for key in keys:
-        if isinstance(base, list):
-            base = base[int(key)]
-        elif isinstance(base, dict):
-            base = base[key]
+def dict_has_value(key : str, data :dict):
+    splitted = key.split("::")
+    target = data
+    for k in splitted:
+        if isinstance(target, list) and len(target) > int(k):
+            target = target[int(k)]
+        elif isinstance(target, dict) and k in target:
+            target = target[k]
+        elif hasattr(target, k):
+            target = getattr(target, k)
         else:
-            base = getattr(base, key)
-    return base
+            return False
+        
+    return True    
 
+        
